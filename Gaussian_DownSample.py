@@ -1,5 +1,6 @@
+import random
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageOps
 import tensorflow as tf
 import scipy.ndimage.filters as fi
 
@@ -34,10 +35,18 @@ def Gaussian_down_sample(sequence, scale):
                                     strides=[1, scale, scale, 1], padding=[[0,0],[0,0],[0,0],[0,0]])
     return LR_seq
 
+def Data_Augmentation(GH, flip_h=True, rotate=True): 
+    if random.random() < 0.5 and flip_h: 
+        GH = [ImageOps.flip(LR) for LR in GH]
+    if random.random() < 0.5 and rotate:
+        GH = [ImageOps.mirror(LR) for LR in GH]
+    return GH
+
 def data_preprocessing(GT_sequence_path, scale):
     GT = load_sequence(GT_sequence_path)
+    GT = Data_Augmentation(GT)
     GT = [np.asarray(img) for img in GT]
     GT = tf.cast(tf.convert_to_tensor(GT), tf.float32)
     LR = Gaussian_down_sample(GT, scale)
     LR = tf.concat([LR[1:2, :, :, :], LR], axis=0)
-    return GT, LR
+    return GT/255, LR/255
